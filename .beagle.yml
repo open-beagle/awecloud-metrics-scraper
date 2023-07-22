@@ -1,6 +1,10 @@
 kind: pipeline
 name: docker
 
+trigger:
+  branch:
+    - dev
+
 volumes:
   - name: docker
     host:
@@ -13,17 +17,12 @@ clone:
   disable: true
 
 steps:
-  - name: fetch
-    image: registry.cn-qingdao.aliyuncs.com/wod/devops-git:1.0
-    settings:
-      proxy:
-        from_secret: SOCKS5_PROXY
-
   - name: s3-cache
     image: registry.cn-qingdao.aliyuncs.com/wod/devops-s3-cache:1.0
     settings:
       restore: true
       mount:
+        - ./.git
         - ./vendor
       endpoint: https://cache.wodcloud.com
       access_key:
@@ -31,10 +30,17 @@ steps:
       secret_key:
         from_secret: SECRET_KEY_MINIO
 
+  - name: fetch
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-git:1.0
+    settings:
+      proxy:
+        from_secret: SOCKS5_PROXY
+
   - name: golang
-    image: registry.cn-qingdao.aliyuncs.com/wod/golang:1.19-bullseye
-    commands:
-      - ./.beagle/build.sh
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-go-arch:1.20-alpine
+    settings:
+      goarchs: amd64,arm64,ppc64le,mips64le
+      binary: metrics-sidecar
 
   - name: docker-amd64
     image: registry.cn-qingdao.aliyuncs.com/wod/devops-docker:1.0
@@ -44,8 +50,8 @@ steps:
     settings:
       dockerfile: .beagle/dockerfile
       base: registry.cn-qingdao.aliyuncs.com/wod/alpine:3-amd64
-      repo: wod/metrics-scraper
-      version: v1.0.8
+      repo: wod/awecloud-metrics-scraper
+      version: v6.1.0
       channel: amd64
       args: 'TARGETOS=linux,TARGETARCH=amd64'
       registry: registry.cn-qingdao.aliyuncs.com
@@ -62,8 +68,8 @@ steps:
     settings:
       dockerfile: .beagle/dockerfile
       base: registry.cn-qingdao.aliyuncs.com/wod/alpine:3-arm64
-      repo: wod/metrics-scraper
-      version: v1.0.8
+      repo: wod/awecloud-metrics-scraper
+      version: v6.1.0
       channel: arm64
       args: 'TARGETOS=linux,TARGETARCH=arm64'
       registry: registry.cn-qingdao.aliyuncs.com
@@ -80,8 +86,8 @@ steps:
     settings:
       dockerfile: .beagle/dockerfile
       base: registry.cn-qingdao.aliyuncs.com/wod/alpine:3-ppc64le
-      repo: wod/metrics-scraper
-      version: v1.0.8
+      repo: wod/awecloud-metrics-scraper
+      version: v6.1.0
       channel: ppc64le
       args: 'TARGETOS=linux,TARGETARCH=ppc64le'
       registry: registry.cn-qingdao.aliyuncs.com
@@ -98,8 +104,8 @@ steps:
     settings:
       dockerfile: .beagle/dockerfile
       base: registry.cn-qingdao.aliyuncs.com/wod/alpine:3-mips64le
-      repo: wod/metrics-scraper
-      version: v1.0.8
+      repo: wod/awecloud-metrics-scraper
+      version: v6.1.0
       channel: mips64le
       args: 'TARGETOS=linux,TARGETARCH=mips64le'
       registry: registry.cn-qingdao.aliyuncs.com
@@ -115,8 +121,75 @@ steps:
         path: /var/run/docker.sock
     settings:
       platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/mips64le
-      template: registry.cn-qingdao.aliyuncs.com/wod/metrics-scraper:v1.0.8-ARCH
-      target: registry.cn-qingdao.aliyuncs.com/wod/metrics-scraper:v1.0.8
+      template: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1.0-ARCH
+      target: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1.0
+      username:
+        from_secret: REGISTRY_USER_ALIYUN
+      password:
+        from_secret: REGISTRY_PASSWORD_ALIYUN
+
+---
+kind: pipeline
+name: harbor
+
+trigger:
+  branch:
+    - master
+
+clone:
+  disable: true
+
+steps:
+  - name: harbor-amd64
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-docker-tag:1.0
+    settings:
+      source: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1.0-amd64
+      target: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1-amd64
+      registry: registry.cn-qingdao.aliyuncs.com
+      registry_user:
+        from_secret: REGISTRY_USER_ALIYUN
+      registry_password:
+        from_secret: REGISTRY_PASSWORD_ALIYUN
+
+  - name: harbor-arm64
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-docker-tag:1.0
+    settings:
+      source: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1.0-arm64
+      target: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1-arm64
+      registry: registry.cn-qingdao.aliyuncs.com
+      registry_user:
+        from_secret: REGISTRY_USER_ALIYUN
+      registry_password:
+        from_secret: REGISTRY_PASSWORD_ALIYUN
+
+  - name: harbor-ppc64le
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-docker-tag:1.0
+    settings:
+      source: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1.0-ppc64le
+      target: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1-ppc64le
+      registry: registry.cn-qingdao.aliyuncs.com
+      registry_user:
+        from_secret: REGISTRY_USER_ALIYUN
+      registry_password:
+        from_secret: REGISTRY_PASSWORD_ALIYUN
+
+  - name: harbor-mips64le
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-docker-tag:1.0
+    settings:
+      source: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1.0-mips64le
+      target: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1-mips64le
+      registry: registry.cn-qingdao.aliyuncs.com
+      registry_user:
+        from_secret: REGISTRY_USER_ALIYUN
+      registry_password:
+        from_secret: REGISTRY_PASSWORD_ALIYUN
+
+  - name: harbor-arch
+    image: registry.cn-qingdao.aliyuncs.com/wod/devops-docker-manifest:1.0
+    settings:
+      platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/mips64le
+      template: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1-ARCH
+      target: registry.cn-qingdao.aliyuncs.com/wod/awecloud-metrics-scraper:v6.1
       username:
         from_secret: REGISTRY_USER_ALIYUN
       password:

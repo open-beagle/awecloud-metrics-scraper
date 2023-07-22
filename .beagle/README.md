@@ -13,21 +13,21 @@ git merge v1.0.8
 ## debug
 
 ```bash
-# cache
+# vendor
 docker run -it --rm \
 -v $PWD/:/go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
 -w /go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
--e GOPROXY=https://goproxy.cn \
--e GOFLAGS=-mod=vendor \
-registry.cn-qingdao.aliyuncs.com/wod/golang:1.19-alpine \
+registry.cn-qingdao.aliyuncs.com/wod/golang:1.20-alpine \
 rm -rf vendor && go mod vendor
 
 # build
-docker run -it --rm \
+docker run \
+--rm \
 -v $PWD/:/go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
 -w /go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
-registry.cn-qingdao.aliyuncs.com/wod/golang:1.19-bullseye \
-bash .beagle/build.sh
+-e PLUGIN_BINARY=metrics-sidecar \
+-e CI_WORKSPACE=/go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
+registry.cn-qingdao.aliyuncs.com/wod/devops-go-arch:1.20-alpine
 
 # test
 docker run -it --rm \
@@ -60,8 +60,7 @@ docker run --rm \
   -e PLUGIN_SECRET_KEY=$PLUGIN_SECRET_KEY \
   -e DRONE_REPO_OWNER="open-beagle" \
   -e DRONE_REPO_NAME="awecloud-metrics-scraper" \
-  -e DRONE_COMMIT_BRANCH="master" \
-  -e PLUGIN_MOUNT="./vendor" \
+  -e PLUGIN_MOUNT="./.git,./vendor" \
   -v $(pwd):$(pwd) \
   -w $(pwd) \
   registry.cn-qingdao.aliyuncs.com/wod/devops-s3-cache:1.0
@@ -74,7 +73,6 @@ docker run --rm \
   -e PLUGIN_SECRET_KEY=$PLUGIN_SECRET_KEY \
   -e DRONE_REPO_OWNER="open-beagle" \
   -e DRONE_REPO_NAME="awecloud-metrics-scraper" \
-  -e DRONE_COMMIT_BRANCH="master" \
   -v $(pwd):$(pwd) \
   -w $(pwd) \
   registry.cn-qingdao.aliyuncs.com/wod/devops-s3-cache:1.0
