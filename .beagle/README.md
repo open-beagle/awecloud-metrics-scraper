@@ -17,17 +17,15 @@ git merge v1.0.8
 docker run -it --rm \
 -v $PWD/:/go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
 -w /go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
-registry.cn-qingdao.aliyuncs.com/wod/golang:1.20-alpine \
+registry.cn-qingdao.aliyuncs.com/wod/golang:1.20 \
 rm -rf vendor && go mod vendor
 
 # build
-docker run \
---rm \
+docker run -it --rm \
 -v $PWD/:/go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
 -w /go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
--e PLUGIN_BINARY=metrics-sidecar \
--e CI_WORKSPACE=/go/src/github.com/kubernetes-sigs/dashboard-metrics-scraper \
-registry.cn-qingdao.aliyuncs.com/wod/devops-go-arch:1.20-alpine
+registry.cn-qingdao.aliyuncs.com/wod/golang:1.20 \
+bash .beagle/build.sh
 
 # test
 docker run -it --rm \
