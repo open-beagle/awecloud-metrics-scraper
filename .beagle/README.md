@@ -7,7 +7,7 @@ git remote add upstream git@github.com:kubernetes-sigs/dashboard-metrics-scraper
 
 git fetch upstream
 
-git merge v1.0.8
+git merge v1.0.9
 ```
 
 ## debug
