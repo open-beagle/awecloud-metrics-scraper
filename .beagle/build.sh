@@ -8,6 +8,7 @@ mkdir -p $PWD/dist
 # apt-get install -y ca-certificates git gcc libc-dev libncurses5-dev sqlite3
 
 echo "Build script building for amd64";
+export GOFLAGS="-mod=vendor"
 
 go build \
 -installsuffix 'static' \
