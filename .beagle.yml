@@ -133,7 +133,7 @@ name: harbor
 
 trigger:
   branch:
-    - release-1.0.6
+    - release-v1.0.6
 
 clone:
   disable: true
